@@ -1,4 +1,4 @@
-package com.kobera.music.testlazydevelopers
+package com.kobera.test.testlazydevelopers
 
 import org.junit.Test
 

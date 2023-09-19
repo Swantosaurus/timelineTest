@@ -1,4 +1,4 @@
-package com.kobera
+package com.kobera.test.testlazydevelopers
 
 import android.animation.ValueAnimator
 import android.os.Bundle
@@ -71,12 +71,15 @@ class MainActivity : ComponentActivity() {
         var timeVelocity = 0.0
         var currentTimeMem = 0L
 
+        /**
+         * integration of 1 - x --> linear velocity slowdown from 100% to 0%
+         * Riemann integral (from 0 to x) of this  is distance traveled in time
+         */
         private fun curve(x: Float): Float {
             return (x * x * -1 / 2) + x
         }
 
         init {
-            duration = 500
             setFloatValues(0f, 1f)
             setEvaluator { fraction, _, _ ->
                 curve(fraction)
@@ -84,6 +87,7 @@ class MainActivity : ComponentActivity() {
             addListener(
                 onEnd = {
                    Log.d("onEnd", "onEnd")
+                    //TODO call exoPlayer toSeek
                 }
             )
             addUpdateListener {
@@ -148,7 +152,7 @@ class MainActivity : ComponentActivity() {
 
 
         /**
-         * simulating Backend
+         * simulating Backend updates
          */
         CoroutineScope(Dispatchers.Main).launch {
             while (true) {
@@ -172,14 +176,14 @@ class MainActivity : ComponentActivity() {
 
 
     fun flingSeeking(timeVelocity: Double) {
-
-        flingAnimator.startWithVelocity(
-            timeVelocity =
-            if (timeVelocity !in (-30_000.0..30_000.0)) {
-                timeVelocity
-            } else 0.0,
-            animationStartTime = currentTime.value
-        )
+        if (timeVelocity !in (-30_000.0..30_000.0)) {
+            flingAnimator.startWithVelocity(
+                timeVelocity = timeVelocity,
+                animationStartTime = currentTime.value
+            )
+        } else {
+            //TODO call exoPlayer to seek
+        }
     }
 
 
@@ -188,8 +192,6 @@ class MainActivity : ComponentActivity() {
     }
 
     val isDragging = MutableStateFlow(false)
-
-    val dateFormat = DateFormat.getDateTimeInstance()
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -202,8 +204,7 @@ class MainActivity : ComponentActivity() {
                     val endState by fakeEnd.collectAsStateWithLifecycle()
                     val currentState by currentTime.collectAsStateWithLifecycle()
                     val isPlayingState by isPlaying.collectAsStateWithLifecycle()
-                    val date = Date(currentState)
-                    val currentString = dateFormat.format(date)
+
                     val segmentSize = 10.dp.toPx().toInt()
 
 
@@ -219,25 +220,25 @@ class MainActivity : ComponentActivity() {
                             .padding(it)
                             .fillMaxSize()
                     ) {
+                        /**
+                         * Main Timeline UI Logic is in this part
+                         */
                         Box(Modifier
                             .pointerInput(Unit) {
                                 detectHorizontalDragGestures(
                                     onDragEnd = {
-                                        //seek( /*TODO */ )
-                                        Log.d("onDragEnd", "onDragEnd")
                                         flingSeeking(timeVelocity = (velocityPxPerSecond / 4 / segmentSize * 10_000).toDouble())
                                         velocityPxPerSecond = 0f
                                         isDragging.value = false
                                     }
                                 ) { change, dragAmountPx ->
+
                                     isDragging.value = true
                                     val dragSeekAmount =
                                         (-dragAmountPx.toDouble()) / segmentSize * 10_000
                                     dragSeeking(dragSeekAmount.toLong())
                                     val timeDelta =
                                         change.uptimeMillis - change.previousUptimeMillis
-
-                                    Log.d("detectDragGestures", "timeDelta: $timeDelta")
 
                                     if(!(timeDelta <= 0)){
                                         velocityPxPerSecond =
@@ -270,30 +271,41 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("IsPlaying: $isPlayingState")
-                            Spacer(modifier = Modifier.weight(1f))
-                            TextButton(onClick = {
-                                setPlaying(true)
-                            }) {
-                                Text(text = "Play")
-                            }
-                            TextButton(onClick = {
-                                setPlaying(false)
-                            }) {
-                                Text(text = "Stop")
-                            }
-                        }
-
-                        Text(currentString, modifier = Modifier.padding(horizontal = 20.dp))
+                        /**
+                         * just buttons and utils extra to test
+                         */
+                        JustUselessHelperUtils(isPlayingState = isPlayingState, setPlaying = ::setPlaying, currentTime = currentState)
                     }
                 }
             }
         }
     }
+}
+
+val dateFormat = DateFormat.getDateTimeInstance()
+@Composable
+private fun JustUselessHelperUtils(isPlayingState: Boolean, setPlaying: (Boolean) -> Unit, currentTime : Long) {
+    val date = Date(currentTime)
+    val currentString = dateFormat.format(date)
+    Row(
+        modifier = Modifier.padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("IsPlaying: $isPlayingState")
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = {
+            setPlaying(true)
+        }) {
+            Text(text = "Play")
+        }
+        TextButton(onClick = {
+            setPlaying(false)
+        }) {
+            Text(text = "Stop")
+        }
+    }
+
+    Text(currentString, modifier = Modifier.padding(horizontal = 20.dp))
 }
 
 @Composable

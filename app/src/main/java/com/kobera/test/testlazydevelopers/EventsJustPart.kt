@@ -1,4 +1,4 @@
-package com.kobera
+package com.kobera.test.testlazydevelopers
 
 import android.util.Log
 import androidx.compose.foundation.Canvas

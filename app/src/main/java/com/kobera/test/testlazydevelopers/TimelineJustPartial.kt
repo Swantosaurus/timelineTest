@@ -1,4 +1,4 @@
-package com.kobera
+package com.kobera.test.testlazydevelopers
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
