@@ -88,12 +88,18 @@ class MainActivity : ComponentActivity() {
                 onEnd = {
                    Log.d("onEnd", "onEnd")
                     //TODO call exoPlayer toSeek
+                },
+                onCancel = {
+                    Log.d("onCancel", "onCancel")
+                    //TODO call exoPlayer toSeek
                 }
             )
             addUpdateListener {
                 val value = it.animatedValue as Float
                 val seekTime = currentTimeMem + (value * timeVelocity).toLong()
-                seek(seekTime)
+                if(!visualSeeking(seekTime)) {
+                    cancel()
+                }
             }
         }
 
@@ -101,6 +107,7 @@ class MainActivity : ComponentActivity() {
             duration = sqrt(timeVelocity.absoluteValue/2).toLong()
             this.timeVelocity = timeVelocity
             currentTimeMem = animationStartTime
+            cancel()
             start()
         }
     }
@@ -162,6 +169,7 @@ class MainActivity : ComponentActivity() {
 
                 fakeStart.value = start.value
                 fakeEnd.value = end.value
+                visualSeeking(currentTime.value)
             }
         }
     }
@@ -170,8 +178,10 @@ class MainActivity : ComponentActivity() {
         isPlaying.value = to
     }
 
-    fun seek(to: Long) {
-        currentTime.value = to
+    fun visualSeeking(to: Long) : Boolean {
+        val coerced = to.coerceIn(start.value, end.value)
+        currentTime.value = coerced
+        return to == coerced
     }
 
 
@@ -188,8 +198,11 @@ class MainActivity : ComponentActivity() {
 
 
     fun dragSeeking(dragOffset: Long) {
-        currentTime.value += dragOffset
+        flingAnimator.cancel()
+        currentTime.value = (currentTime.value + dragOffset).coerceIn(start.value .. end.value)
     }
+
+
 
     val isDragging = MutableStateFlow(false)
 
