@@ -3,6 +3,7 @@ package com.kobera.test.testlazydevelopers
 import android.animation.ValueAnimator
 import android.os.Bundle
 import android.util.Log
+import android.view.animation.DecelerateInterpolator
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -56,14 +57,9 @@ class MainActivity : ComponentActivity() {
     val cl = Calendar.getInstance()
     private var start: MutableStateFlow<Long>
     private var end: MutableStateFlow<Long>
-    val fakeStart: MutableStateFlow<Long>
-    val fakeEnd: MutableStateFlow<Long>
     val events: MutableList<TimeRange>
     val currentTime: MutableStateFlow<Long>
     val isPlaying = MutableStateFlow(true)
-
-
-    val fakeCurrent: MutableStateFlow<Long>
 
     private val flingAnimator = FlingAnimator()
 
@@ -75,29 +71,27 @@ class MainActivity : ComponentActivity() {
          * integration of 1 - x --> linear velocity slowdown from 100% to 0%
          * Riemann integral (from 0 to x) of this  is distance traveled in time
          */
-        private fun curve(x: Float): Float {
+      /*  private fun curve(x: Float): Float {
             return (x * x * -1 / 2) + x
-        }
+        }*/
 
         init {
             setFloatValues(0f, 1f)
-            setEvaluator { fraction, _, _ ->
+            /*setEvaluator { fraction, _, _ ->
                 curve(fraction)
-            }
+            }*/
+            interpolator = DecelerateInterpolator()
             addListener(
                 onEnd = {
                    Log.d("onEnd", "onEnd")
                     //TODO call exoPlayer toSeek
                 },
-                onCancel = {
-                    Log.d("onCancel", "onCancel")
-                    //TODO call exoPlayer toSeek
-                }
             )
             addUpdateListener {
                 val value = it.animatedValue as Float
                 val seekTime = currentTimeMem + (value * timeVelocity).toLong()
                 if(!visualSeeking(seekTime)) {
+                    //TODO call exoPlayer toSeek
                     cancel()
                 }
             }
@@ -128,11 +122,6 @@ class MainActivity : ComponentActivity() {
         cl.add(Calendar.MONTH, 1)
 
         end = MutableStateFlow(cl.timeInMillis)
-
-
-        fakeStart = MutableStateFlow(start.value)
-        fakeEnd = MutableStateFlow(end.value)
-        fakeCurrent = MutableStateFlow(currentTime.value)
 
 
         start.value.let { start ->
@@ -166,9 +155,6 @@ class MainActivity : ComponentActivity() {
                 delay(FMP4_SEGMENT_DURATION)
                 start.value += FMP4_SEGMENT_DURATION.toLong(DurationUnit.MILLISECONDS) + (-30..30).random()
                 end.value += FMP4_SEGMENT_DURATION.toLong(DurationUnit.MILLISECONDS) + (-30..30).random()
-
-                fakeStart.value = start.value
-                fakeEnd.value = end.value
                 visualSeeking(currentTime.value)
             }
         }
@@ -213,8 +199,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             TestLazyDevelopersTheme {
                 Scaffold {
-                    val startState by fakeStart.collectAsStateWithLifecycle()
-                    val endState by fakeEnd.collectAsStateWithLifecycle()
+                    val startState by start.collectAsStateWithLifecycle()
+                    val endState by end.collectAsStateWithLifecycle()
                     val currentState by currentTime.collectAsStateWithLifecycle()
                     val isPlayingState by isPlaying.collectAsStateWithLifecycle()
 
@@ -237,6 +223,7 @@ class MainActivity : ComponentActivity() {
                          * Main Timeline UI Logic is in this part
                          */
                         Box(Modifier
+                            .background(color = Color.Red)
                             .pointerInput(Unit) {
                                 detectHorizontalDragGestures(
                                     onDragEnd = {

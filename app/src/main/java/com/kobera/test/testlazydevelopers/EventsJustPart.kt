@@ -87,7 +87,7 @@ fun DrawScope.drawEvent(
 ) {
     val startBarrier = maxOf(timelineStart, canvasStartTime)
     val endBarrier = minOf(timelineEnd, canvasEndTime)
-    val eventTrimmed = event.trimmedBy(TimeRange(startBarrier, endBarrier))
+    val eventTrimmed = event.trimBy(TimeRange(startBarrier, endBarrier))
 
     val eventWidthPx = (segmentSizePx * (eventTrimmed.getDuration().toFloat() / segmentDuration))
     val eventStartOffsetPx =
